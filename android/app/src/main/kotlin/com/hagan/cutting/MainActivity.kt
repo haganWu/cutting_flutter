@@ -1,4 +1,4 @@
-package com.example.cutting_flutter
+package com.hagan.cutting
 
 import io.flutter.embedding.android.FlutterActivity
 
