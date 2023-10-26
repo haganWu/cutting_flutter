@@ -1,3 +1,4 @@
+import 'package:cutting_flutter/pages/bottom_navigator.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -12,31 +13,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
+        primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(),
+      home: const BottomNavigator(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Text(
-          'Engraver2',
-          style: TextStyle(color: Colors.blue, fontSize: 20),
-        ),
-      ),
-    );
-  }
-}
