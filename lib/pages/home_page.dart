@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:cutting_flutter/extension/padding_extension.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import '../utils/hi_logger.dart';
 
 /// 首页
@@ -11,37 +14,82 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final FlutterBluePlus flutterBluePlus = FlutterBluePlus();
 
-  // FlutterBlue flutterBlue = FlutterBlue.instance;
-  // BluetoothDevice selectedDevice;
-  // bool isTransferring = false;
+  // bool isBlueOn = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // isBlueOn = false;
+    // FlutterBluePlus.adapterState.listen((event) {
+    //   HiLogger.log(message: '蓝牙状态改变');
+    //   if (event == BluetoothAdapterState.on) {
+    //     HiLogger.log(message: '蓝牙已打开');
+    //     setState(() {
+    //       isBlueOn = true;
+    //     });
+    //   } else {
+    //     HiLogger.log(message: '蓝牙已关闭');
+    //     setState(() {
+    //       isBlueOn = false;
+    //     });
+    //   }
+    // });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        padding: const EdgeInsets.only(left: 12, top: 30, right: 12, bottom: 12),
+        padding:
+            const EdgeInsets.only(left: 12, top: 36, right: 12, bottom: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [const Text('测试切割', style: TextStyle(fontSize: 16, color: Colors.blue), textAlign: TextAlign.center), _sendBtn()],
+              children: [
+                const Text('测试切割',
+                    style: TextStyle(fontSize: 16, color: Colors.blue),
+                    textAlign: TextAlign.center),
+                _sendBtn()
+              ],
             ),
             30.paddingHeight,
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                genItem(Icons.bluetooth, '蓝牙', onBluetoothClick),
-                genItem(Icons.hourglass_empty_outlined, '进纸', onPaperInClick),
-                genItem(Icons.hourglass_empty_outlined, '退纸', onPaperOutClick),
-                genItem(Icons.hourglass_empty_outlined, '刀压', onKnifePressClick),
+                StreamBuilder<BluetoothAdapterState>(
+                  stream: FlutterBluePlus.adapterState,
+                  initialData: BluetoothAdapterState.unknown,
+                  builder: (c, snapshot) {
+                    final adapterState = snapshot.data;
+                    HiLogger.log(message: 'adapterState"$adapterState');
+                    if (adapterState == BluetoothAdapterState.on) {
+                      return genItem(
+                          Icons.bluetooth, '蓝牙', onBluetoothClick, Colors.blue);
+                    } else {
+                      FlutterBluePlus.stopScan();
+                      return genItem(
+                          Icons.bluetooth, '蓝牙', onBluetoothClick, Colors.grey);
+                    }
+                  },
+                ),
+                // genItem(Icons.bluetooth, '蓝牙', onBluetoothClick,
+                //     isBlueOn ? Colors.blue : Colors.grey),
+                genItem(Icons.hourglass_empty_outlined, '进纸', onPaperInClick,
+                    Colors.blue),
+                genItem(Icons.hourglass_empty_outlined, '退纸', onPaperOutClick,
+                    Colors.blue),
+                genItem(Icons.hourglass_empty_outlined, '刀压', onKnifePressClick,
+                    Colors.blue),
               ],
             )
           ],
         ),
       ),
+
     );
   }
 
@@ -52,10 +100,12 @@ class _HomePageState extends State<HomePage> {
             color: Colors.blueGrey,
             borderRadius: BorderRadius.circular(6),
           ),
-          padding: const EdgeInsets.only(left: 12, right: 12, top: 6, bottom: 6),
+          padding:
+              const EdgeInsets.only(left: 12, right: 12, top: 6, bottom: 6),
           child: InkWell(
             onTap: _onSend,
-            child: const Text('发送', style: TextStyle(color: Colors.white, fontSize: 12)),
+            child: const Text('发送',
+                style: TextStyle(color: Colors.white, fontSize: 12)),
           ),
         );
       };
@@ -64,14 +114,14 @@ class _HomePageState extends State<HomePage> {
     HiLogger.log(message: '点击发送');
   }
 
-  genItem(IconData icon, String text, Function onClick) {
+  genItem(IconData icon, String text, Function onClick, Color color) {
     return InkWell(
       onTap: () {
         onClick();
       },
       child: Column(
         children: [
-          Icon(icon, color: Colors.grey,),
+          Icon(icon, color: color),
           Text(
             text,
             style: const TextStyle(color: Colors.grey, fontSize: 16),

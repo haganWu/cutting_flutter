@@ -13,7 +13,7 @@ class _CommunityPageState extends State<CommunityPage> {
   Widget build(BuildContext context) {
     return const Scaffold(
       body: Center(
-        child: Text('我的页面', style: TextStyle(fontSize: 30, color: Colors.blue)),
+        child: Text('社区页面', style: TextStyle(fontSize: 30, color: Colors.blue)),
       ),
     );
   }
