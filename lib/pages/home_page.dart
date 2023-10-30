@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:cutting_flutter/extension/padding_extension.dart';
+import 'package:cutting_flutter/models/bluetooth_device_model.dart';
+import 'package:cutting_flutter/utils/hi_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import '../utils/hi_logger.dart';
@@ -15,44 +17,40 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final FlutterBluePlus flutterBluePlus = FlutterBluePlus();
-
-  // bool isBlueOn = false;
+  List<BluetoothDeviceModel> scanResultList = [];
 
   @override
   void initState() {
     super.initState();
-    // isBlueOn = false;
-    // FlutterBluePlus.adapterState.listen((event) {
-    //   HiLogger.log(message: '蓝牙状态改变');
-    //   if (event == BluetoothAdapterState.on) {
-    //     HiLogger.log(message: '蓝牙已打开');
-    //     setState(() {
-    //       isBlueOn = true;
-    //     });
-    //   } else {
-    //     HiLogger.log(message: '蓝牙已关闭');
-    //     setState(() {
-    //       isBlueOn = false;
-    //     });
-    //   }
-    // });
+    FlutterBluePlus.scanResults.listen((List<ScanResult> resultList) {
+      HiLogger.log(message: '----------------------监听扫描结果--------------------------------------');
+      for (var result in resultList) {
+        if (result.advertisementData.localName.isNotEmpty) {
+          HiLogger.log(message: '扫描结果-设备名称：${result.advertisementData.localName}');
+          BluetoothDeviceModel model = BluetoothDeviceModel(
+              deviceId: result.device.remoteId.toString(), deviceName: result.advertisementData.localName);
+          if (!scanResultList.contains(model)) {
+            setState(() {
+              scanResultList.add(model);
+            });
+          }
+        }
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        padding:
-            const EdgeInsets.only(left: 12, top: 36, right: 12, bottom: 12),
+        padding: const EdgeInsets.only(left: 12, top: 36, right: 12, bottom: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('测试切割',
-                    style: TextStyle(fontSize: 16, color: Colors.blue),
-                    textAlign: TextAlign.center),
+                const Text('测试切割', style: TextStyle(fontSize: 16, color: Colors.blue), textAlign: TextAlign.center),
                 _sendBtn()
               ],
             ),
@@ -67,29 +65,30 @@ class _HomePageState extends State<HomePage> {
                     final adapterState = snapshot.data;
                     HiLogger.log(message: 'adapterState"$adapterState');
                     if (adapterState == BluetoothAdapterState.on) {
-                      return genItem(
-                          Icons.bluetooth, '蓝牙', onBluetoothClick, Colors.blue);
+                      return genItem(context, Icons.bluetooth, '蓝牙', onBluetoothClick, Colors.blue);
                     } else {
-                      FlutterBluePlus.stopScan();
-                      return genItem(
-                          Icons.bluetooth, '蓝牙', onBluetoothClick, Colors.grey);
+                      return genItem(context, Icons.bluetooth, '蓝牙', onBluetoothClick, Colors.grey);
                     }
                   },
                 ),
-                // genItem(Icons.bluetooth, '蓝牙', onBluetoothClick,
-                //     isBlueOn ? Colors.blue : Colors.grey),
-                genItem(Icons.hourglass_empty_outlined, '进纸', onPaperInClick,
-                    Colors.blue),
-                genItem(Icons.hourglass_empty_outlined, '退纸', onPaperOutClick,
-                    Colors.blue),
-                genItem(Icons.hourglass_empty_outlined, '刀压', onKnifePressClick,
-                    Colors.blue),
+                genItem(context, Icons.hourglass_empty_outlined, '进纸', onPaperInClick, Colors.blue),
+                genItem(context, Icons.hourglass_empty_outlined, '退纸', onPaperOutClick, Colors.blue),
+                genItem(context, Icons.hourglass_empty_outlined, '刀压', onKnifePressClick, Colors.blue),
+                // scanResultList()
               ],
-            )
+            ),
+            30.paddingHeight,
+            Expanded(
+                child: ListView.builder(
+              // 解决ListView数据量较少时无法滑动问题
+              physics: const ClampingScrollPhysics(),
+              shrinkWrap: true, // 使用shrinkWrap属性
+              itemCount: scanResultList.length,
+              itemBuilder: (BuildContext ancestor, int index) => _scanResultItemWidget(index),
+            ))
           ],
         ),
       ),
-
     );
   }
 
@@ -100,12 +99,10 @@ class _HomePageState extends State<HomePage> {
             color: Colors.blueGrey,
             borderRadius: BorderRadius.circular(6),
           ),
-          padding:
-              const EdgeInsets.only(left: 12, right: 12, top: 6, bottom: 6),
+          padding: const EdgeInsets.only(left: 12, right: 12, top: 6, bottom: 6),
           child: InkWell(
             onTap: _onSend,
-            child: const Text('发送',
-                style: TextStyle(color: Colors.white, fontSize: 12)),
+            child: const Text('发送', style: TextStyle(color: Colors.white, fontSize: 12)),
           ),
         );
       };
@@ -114,9 +111,13 @@ class _HomePageState extends State<HomePage> {
     HiLogger.log(message: '点击发送');
   }
 
-  genItem(IconData icon, String text, Function onClick, Color color) {
+  genItem(BuildContext context, IconData icon, String text, Function onClick, Color color) {
     return InkWell(
       onTap: () {
+        if (color == Colors.grey) {
+          HiDialog.showSnackBar(context, "请打开蓝牙");
+          return;
+        }
         onClick();
       },
       child: Column(
@@ -133,6 +134,10 @@ class _HomePageState extends State<HomePage> {
 
   onBluetoothClick() {
     HiLogger.log(message: '点击蓝牙');
+    setState(() {
+      scanResultList.clear();
+    });
+    FlutterBluePlus.startScan(timeout: const Duration(seconds: 15), androidUsesFineLocation: false);
   }
 
   onPaperInClick() {
@@ -146,4 +151,45 @@ class _HomePageState extends State<HomePage> {
   onKnifePressClick() {
     HiLogger.log(message: '点击刀压');
   }
+
+  _scanResultItemWidget(int index) {
+    return Card(
+      margin: const EdgeInsets.only(left: 2, top: 4, right: 2, bottom: 4),
+      elevation: 10.0,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 10, top: 6, right: 10, bottom: 6),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text("设备ID ------ ${scanResultList[index].deviceId}",
+              style: const TextStyle(fontSize: 16, color: Colors.green)),
+          6.paddingHeight,
+          Text("设备名称 ------ ${scanResultList[index].deviceName ?? ""}",
+              style: const TextStyle(fontSize: 16, color: Colors.red)),
+        ]),
+      ),
+    );
+  }
+
+// scanResultList() {
+//   return SingleChildScrollView(
+//     child: Column(
+//       children: <Widget>[
+//         StreamBuilder<List<ScanResult>>(
+//           stream: FlutterBluePlus.scanResults,
+//           builder: (c, snapshot){
+//             HiLogger.log(message: '扫描结果:${snapshot.data}');
+//             return Column(
+//               // children: (snapshot.data ?? []).map((r) => scanResultItem(r)).toList(),
+//             );
+//           },
+//         )
+//       ],
+//     ),
+//   );
+// }
+
+// scanResultItem(ScanResult r) {
+//   return Column(
+//     children: [],
+//   );
+// }
 }
